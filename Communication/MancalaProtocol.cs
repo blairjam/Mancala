@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Communication
+﻿namespace Communication
 {
     public static class MancalaProtocol
     {

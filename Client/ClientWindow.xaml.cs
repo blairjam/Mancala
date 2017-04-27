@@ -40,13 +40,15 @@ namespace Client
 
         private MancalaClient client;
 
+        private delegate void MessageWriter(string msg);
+
         public ClientWindow()
         {
             InitializeComponent();
 
             InitializeCups();
 
-            client = new MancalaClient();
+            client = new MancalaClient(x => UpdateMessage(x));
         }
 
         private void InitializeCups()
@@ -71,6 +73,12 @@ namespace Client
         {
             ClientMessage_Label.Content = "Connecting to server...";
             client.Connect();
+        }
+
+        private void UpdateMessage(string msg)
+        {
+            MessageWriter writer = (x) => { ClientMessage_Label.Content = x; };
+            ClientMessage_Label.Dispatcher.BeginInvoke(writer, msg);
         }
 
         private void FillAllCups(int gems)

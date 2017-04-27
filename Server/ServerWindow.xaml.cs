@@ -19,7 +19,7 @@ namespace Server
     {
         private MancalaServer server;
 
-        delegate void LogUpdater(string msg);
+        private delegate void LogUpdater(string msg);
 
         public ServerWindow()
         {

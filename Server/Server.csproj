@@ -97,7 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Communication\Communication.csproj">
-      <Project>{c6652131-3185-47df-a94a-f6df9cb54668}</Project>
+      <Project>{5830337c-0b53-4363-a85b-867417da8358}</Project>
       <Name>Communication</Name>
     </ProjectReference>
   </ItemGroup>

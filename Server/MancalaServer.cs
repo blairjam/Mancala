@@ -20,7 +20,7 @@ namespace Server
         private Task connectionListenerTask;
         private volatile bool isAcceptingConnections;
 
-        private int clientId = 0;
+        private byte clientId = 0;
 
         public MancalaServer(Action<string> logWriter)
         {
