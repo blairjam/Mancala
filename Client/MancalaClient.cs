@@ -118,6 +118,16 @@ namespace Client
                         };
                         break;
                     }
+                    case MancalaProtocol.WAITING_FOR_NEW_OPPONENT:
+                    {
+                        messageWriter("Waiting for new opponent!");
+                        break;
+                    }
+                    case MancalaProtocol.OPPONENT_FOUND:
+                    {
+                        messageWriter("Opponent found. Game beginning soon!");
+                        break;
+                    }
                     default:
                     {
                         break;

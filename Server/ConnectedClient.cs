@@ -12,6 +12,7 @@ namespace Server
     public class ConnectedClient
     {
         public byte ClientId { get; private set; }
+        public byte? OpponentId { get; set; }
 
         private TcpClient connection;
         private Action<string> logWriter;
@@ -131,7 +132,6 @@ namespace Server
                     }
 
                     stream.Write(sendBuffer, 0, sendBuffer.Length);
-                    Console.WriteLine("Sending: " + sendBuffer[0]);
                     sendBuffer = null;
                 }
             });

@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Communication;
 
 namespace Server
 {
@@ -49,6 +50,8 @@ namespace Server
                     connectedClients.Add(new ConnectedClient(connection, clientId, logWriter, DisposeOfClient));
                     logWriter("[Client " + clientId + "]: Connected.");
                     clientId++;
+
+                    AssignOpponents();
                 }
             });
         }
@@ -66,10 +69,32 @@ namespace Server
             }
         }
 
+        private void AssignOpponents()
+        {
+            var newestPlayer = connectedClients[connectedClients.Count - 1];
+
+            for (int i = 0; i < connectedClients.Count - 1; i++)
+            {
+                var nextPlayer = connectedClients[i];
+
+                if (nextPlayer.OpponentId == null)
+                {
+                    nextPlayer.OpponentId = newestPlayer.ClientId;
+                    newestPlayer.OpponentId = nextPlayer.ClientId;
+
+                    nextPlayer.SendData(MancalaProtocol.OPPONENT_FOUND);
+                    newestPlayer.SendData(MancalaProtocol.OPPONENT_FOUND);
+
+                    return;
+                }
+            }
+
+            newestPlayer.SendData(MancalaProtocol.WAITING_FOR_NEW_OPPONENT);
+        }
+
         private void DisposeOfClient(byte id)
         {
             connectedClients.RemoveAll((x) => x.ClientId == id);
-
         }
     }
 }
