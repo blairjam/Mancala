@@ -12,6 +12,12 @@ namespace Server
         private TcpClient connection;
         private int clientId;
 
+        private Task listenerTask;
+        private Task senderTask;
+
+        private volatile bool isListening = false;
+        private volatile bool isSending = false;
+
         public ConnectedClient(TcpClient connection, int clientId)
         {
             this.connection = connection;
@@ -21,6 +27,22 @@ namespace Server
         public void Close()
         {
             connection.Close();
+        }
+
+        public void DataRecieved()
+        {
+
+        }
+
+        private void StartListeningTask()
+        {
+            listenerTask = Task.Run(() =>
+            {
+                while (isListening)
+                {
+                    var stream = connection.GetStream();
+                }
+            });
         }
     }
 }
