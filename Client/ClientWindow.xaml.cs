@@ -35,9 +35,6 @@ namespace Client
 
         private List<Cup> cups = new List<Cup>();
 
-        private const int SERVER_PORT = 5665;
-        private const string SERVER_ADDR = "127.0.0.1";
-
         private MancalaClient client;
 
         private delegate void MessageWriter(string msg);
@@ -51,6 +48,7 @@ namespace Client
             client = new MancalaClient(x => UpdateMessage(x));
         }
 
+        // Add cups to the cups list.
         private void InitializeCups()
         {
             cups.Add(new Cup(PlayerCup0_Image, PlayerCup0_Label));
@@ -71,16 +69,26 @@ namespace Client
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Start connecting to the server.
             ClientMessage_Label.Content = "Connecting to server...";
             client.Connect();
         }
 
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Disconnect from the server.
+            client.Disconnect();
+        }
+
         private void UpdateMessage(string msg)
         {
+            // Update the message.
             MessageWriter writer = (x) => { ClientMessage_Label.Content = x; };
             ClientMessage_Label.Dispatcher.BeginInvoke(writer, msg);
         }
 
+        // Fill all the cups with the given amount of gems.
         private void FillAllCups(int gems)
         {
             for (int i = 0; i < cups.Count; i++)
@@ -92,12 +100,15 @@ namespace Client
             }
         }
 
+        // Handles clicking on a given cup.
         private void PlayerCupClick(int cupLoc)
         {
             var clickedCup = cups[cupLoc];
             var availableGems = clickedCup.Gems;
             clickedCup.Gems = 0;
 
+            // Loop through available gems, and cup locations.
+            // Cup locations loop back around to the beginning when the end is reached.
             for (int i = 0, nextCup = cupLoc + 1; i < availableGems; i++, nextCup = (nextCup + 1) % cups.Count)
             {
                 Application.Current.Dispatcher.Invoke(delegate 
@@ -107,38 +118,55 @@ namespace Client
             }
         }
 
+        // Handles clicking of player cups.
         #region ButtonClickListeners
         private void PlCup0_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_0);
+            if (cups[PLAYER_CUP_0].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_0);
+            }
         }
 
         private void PlCup1_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_1);
+            if (cups[PLAYER_CUP_1].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_1);
+            }
         }
 
         private void PlCup2_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_2);
+            if (cups[PLAYER_CUP_2].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_2);
+            }
         }
 
         private void PlCup3_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_3);
+            if (cups[PLAYER_CUP_3].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_3);
+            }
         }
 
         private void PlCup4_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_4);
+            if (cups[PLAYER_CUP_4].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_4);
+            }
         }
 
         private void PlCup5_Button_Click(object sender, RoutedEventArgs e)
         {
-            PlayerCupClick(PLAYER_CUP_5);
+            if (cups[PLAYER_CUP_5].Gems <= 0)
+            {
+                PlayerCupClick(PLAYER_CUP_5);
+            }
         }
         #endregion
-
-        
     }
 }

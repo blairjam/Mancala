@@ -11,40 +11,82 @@ namespace Server
 {
     public class ConnectedClient
     {
+        public byte ClientId { get; private set; }
+
         private TcpClient connection;
-        private int clientId;
+        private Action<string> logWriter;
 
         private Task listenerTask;
         private Task senderTask;
 
-        private volatile byte[] sendBuffer;
+        private byte[] sendBuffer;
 
+        private volatile bool isConnected = false;
         private volatile bool isListening = false;
         private volatile bool isSending = false;
+        private volatile bool isDataProcessed = true;
 
-        public ConnectedClient(TcpClient connection, byte clientId)
+        public ConnectedClient(TcpClient connection, byte clientId, Action<string> logWriter, Action<byte> clientDisposer)
         {
             this.connection = connection;
-            this.clientId = clientId;
+            ClientId = clientId;
+            this.logWriter = logWriter;
+
+            isConnected = true;
 
             StartSenderTask();
-            sendBuffer = new byte[]{ MancalaProtocol.CONNECTED, MancalaProtocol.EXPECT_ID, clientId };
+            StartListenerTask();
+
+            sendBuffer = new byte[] { MancalaProtocol.CONNECTED, MancalaProtocol.EXPECT_ID, clientId };
+
+            Task.Run(() =>
+            {
+                while (isConnected || !isDataProcessed)
+                {
+                    Thread.Sleep(500);
+                }
+
+                Close();
+
+                clientDisposer(clientId);
+            });
         }
 
-        public async void Close()
+        public void Close()
         {
             isListening = false;
-            isSending = false;
+            listenerTask.Wait();
 
-            await listenerTask;
-            await senderTask;
+            isSending = false;
+            senderTask.Wait();
 
             connection.Close();
+
+            isConnected = false;
         }
 
-        public void DataRecieved()
+        public void DataRecieved(byte[] data)
         {
+            isDataProcessed = false;
 
+            for (int i = 0; i < data.Length; i++)
+            {
+                switch (data[i])
+                {
+                    case MancalaProtocol.DISCONNECTED:
+                    {
+                        logWriter("[Client " + ClientId + "]: Disconnecting.");
+                        isConnected = false;
+                        return;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+
+            isDataProcessed = true;
         }
 
         public void SendData(params byte[] data)
@@ -57,12 +99,20 @@ namespace Server
             isListening = true;
             listenerTask = Task.Run(() =>
             {
-                while (isListening)
-                {
-                    byte[] buf = new byte[1024];
-                    var stream = connection.GetStream();
+                var stream = connection.GetStream();
 
-                    //stream.R
+                while (isConnected && isListening)
+                {
+                    if (!stream.DataAvailable)
+                    {
+                        Thread.Sleep(250);
+                        continue;
+                    }
+
+                    byte[] buf = new byte[256];
+                    stream.Read(buf, 0, 256);
+
+                    DataRecieved(buf);
                 }
             });
         }
@@ -74,20 +124,16 @@ namespace Server
             senderTask = Task.Run(() =>
             {
                 var stream = connection.GetStream();
-                
-                while (isSending)
+
+                while (isConnected && isSending)
                 {
                     if (sendBuffer == null)
                     {
                         Thread.Sleep(250);
-                        Console.WriteLine("Server Send null buffer.");
                         continue;
                     }
 
-                    Console.WriteLine("Server send buffer data.");
-
                     stream.Write(sendBuffer, 0, sendBuffer.Length);
-
                     sendBuffer = null;
                 }
             });

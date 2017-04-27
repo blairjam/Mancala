@@ -39,8 +39,8 @@ namespace Server
                 while (isAcceptingConnections)
                 {
                     var connection = tcpListener.AcceptTcpClient();
-                    connectedClients.Add(new ConnectedClient(connection, clientId));
-                    logWriter("Client " + clientId + " connected.");
+                    connectedClients.Add(new ConnectedClient(connection, clientId, logWriter, DisposeOfClient));
+                    logWriter("[Client " + clientId + "]: Connected.");
                     clientId++;
                 }
             });
@@ -57,6 +57,12 @@ namespace Server
             {
                 client.Close();
             }
+        }
+
+        private void DisposeOfClient(byte id)
+        {
+            connectedClients.RemoveAll((x) => x.ClientId == id);
+            Console.WriteLine("Disposed of client: " + id);
         }
     }
 }

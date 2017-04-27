@@ -20,10 +20,15 @@ namespace Client
         private byte id;
 
         private Task listenerTask;
+        private Task senderTask;
 
+        private volatile byte[] sendBuffer;
+
+        private volatile bool isConnected = false;
         private volatile bool isListening = false;
+        private volatile bool isSending = false;
 
-        private Action<byte> nextRecievedAction;
+        private Action<byte> recievedSecondaryAction;
 
         public MancalaClient(Action<string> messageWriter)
         {
@@ -31,39 +36,73 @@ namespace Client
             tcpClient = new TcpClient();
         }
 
+        // Attempts to connect the client to the server.
         public async void Connect()
         {
-            bool connected = false;
-
-            while (!connected)
+            // Continuously check for server connection until it is found.
+            while (!isConnected)
             {
                 try
                 {
+                    // Connect on separate thread.
                     await tcpClient.ConnectAsync(SERVER_ADDR, SERVER_PORT);
-                    connected = true;
+                    isConnected = true;
                 }
                 catch (Exception)
                 {
+                    // Wait for a separate thread to sleep and return. 
+                    // This prevents the UI thread from being blocked, but inserts time between conenction attempts.
                     await Task.Run(() => Thread.Sleep(1000));
                 }
             }
 
+            // Start listening to the server once there is a connection.
             StartListenerTask();
+            StartSenderTask();
         }
 
+        // Closes the connection to the server.
+        public void Disconnect()
+        {
+            sendBuffer = new byte[] { MancalaProtocol.DISCONNECTED };
+
+            // Stop the listening thread.
+            isListening = false;
+            listenerTask.Wait();
+
+            // Stop the sending thread.
+            isSending = false;
+            senderTask.Wait();
+
+            tcpClient.Close();
+
+            isConnected = false;
+        }
+
+        // Handle data recieved from the server.
         private void DataRecieved(byte[] data)
         {
+            // Loop over data read from the stream.
             for (int i = 0; i < data.Length; i++)
             {
-                if (nextRecievedAction != null)
+                // Complete a secondary action if one is available.
+                // Executes the action and sets it to null because the action is completed.
+                if (recievedSecondaryAction != null)
                 {
-                    nextRecievedAction(data[i]);
-                    nextRecievedAction = null;
+                    recievedSecondaryAction(data[i]);
+                    recievedSecondaryAction = null;
                     continue;
                 }
 
+                // Check the byte against known protocol values.
                 switch (data[i])
                 {
+                    case MancalaProtocol.DISCONNECTED:
+                    {
+                        messageWriter("Disconnected from server.");
+                        isConnected = false;
+                        return;
+                    }
                     case MancalaProtocol.CONNECTED:
                     {
                         messageWriter("Connected to server.");
@@ -71,7 +110,8 @@ namespace Client
                     }
                     case MancalaProtocol.EXPECT_ID:
                     {
-                        nextRecievedAction = x =>
+                        // Create a secondary action to be completed on the next byte available.
+                        recievedSecondaryAction = x =>
                         {
                             id = x;
                             messageWriter("ID: " + id);
@@ -86,20 +126,52 @@ namespace Client
             }
         }
 
+        // Creates a separate thread that listens for data sent from the server.
         private void StartListenerTask()
         {
             isListening = true;
 
+            // Create and run new task.
             listenerTask = Task.Run(() =>
+            {
+                // Get reference to the data stream.
+                var stream = tcpClient.GetStream();
+
+                // Read data from the stream and process it.
+                while (isConnected && isListening)
+                {
+                    if (!stream.DataAvailable)
+                    {
+                        Thread.Sleep(250);
+                        continue;
+                    }
+
+                    var buf = new byte[256];
+                    var res = stream.Read(buf, 0, 256);
+
+                    DataRecieved(buf);
+                }
+            });
+        }
+
+        private void StartSenderTask()
+        {
+            isSending = true;
+
+            senderTask = Task.Run(() =>
             {
                 var stream = tcpClient.GetStream();
 
-                while (isListening)
+                while (isConnected && isSending)
                 {
-                    var buf = new byte[256];
-                    stream.Read(buf, 0, 256);
+                    if (sendBuffer == null)
+                    {
+                        Thread.Sleep(250);
+                        continue;
+                    }
 
-                    DataRecieved(buf);
+                    stream.Write(sendBuffer, 0, sendBuffer.Length);
+                    sendBuffer = null;
                 }
             });
         }
