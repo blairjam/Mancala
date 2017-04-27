@@ -16,28 +16,34 @@ namespace Server
 
         private TcpClient connection;
         private Action<string> logWriter;
+        private Action<MancalaMove> gameMoveUpdater;
 
         private Task listenerTask;
         private Task senderTask;
 
-        private byte[] sendBuffer;
+        private Queue<byte> sendBuffer;
 
         private volatile bool isConnected = false;
         private volatile bool isListening = false;
         private volatile bool isSending = false;
 
-        public ConnectedClient(TcpClient connection, byte clientId, Action<string> logWriter, Action<byte> clientDisposer)
+        private Action<byte> recievedDataSecondaryAction;
+
+        public ConnectedClient(TcpClient connection, byte clientId, Action<string> logWriter, Action<MancalaMove> gameMoveUpdater, Action<byte> clientDisposer)
         {
             this.connection = connection;
             ClientId = clientId;
             this.logWriter = logWriter;
+            this.gameMoveUpdater = gameMoveUpdater;
+
+            sendBuffer = new Queue<byte>();
 
             isConnected = true;
 
             StartSenderTask();
             StartListenerTask();
 
-            sendBuffer = new byte[] { MancalaProtocol.CONNECTED, MancalaProtocol.EXPECT_ID, clientId };
+            SendData(MancalaProtocol.CONNECTED, MancalaProtocol.EXPECT_ID, clientId);
 
             Task.Run(() =>
             {
@@ -54,7 +60,7 @@ namespace Server
 
         public void Close()
         {
-            sendBuffer = new byte[] { MancalaProtocol.DISCONNECTED };
+            SendData(MancalaProtocol.DISCONNECTED);
 
             isListening = false;
             listenerTask.Wait();
@@ -71,6 +77,13 @@ namespace Server
         {
             for (int i = 0; i < data.Length; i++)
             {
+                if (recievedDataSecondaryAction != null)
+                {
+                    recievedDataSecondaryAction(data[i]);
+                    recievedDataSecondaryAction = null;
+                    continue;
+                }
+
                 switch (data[i])
                 {
                     case MancalaProtocol.DISCONNECTED:
@@ -78,6 +91,14 @@ namespace Server
                         logWriter("[Client " + ClientId + "]: Disconnecting.");
                         isConnected = false;
                         return;
+                    }
+                    case MancalaProtocol.EXPECT_MOVE:
+                    {
+                        recievedDataSecondaryAction = x =>
+                        {
+                            gameMoveUpdater(new MancalaMove(ClientId, OpponentId, x));
+                        };
+                        break;
                     }
                     default:
                     {
@@ -89,7 +110,10 @@ namespace Server
 
         public void SendData(params byte[] data)
         {
-            sendBuffer = data;
+            foreach (var dat in data)
+            {
+                sendBuffer.Enqueue(dat);
+            }
         }
 
         private void StartListenerTask()
@@ -125,14 +149,16 @@ namespace Server
 
                 while (isConnected && isSending)
                 {
-                    if (sendBuffer == null)
+                    if (sendBuffer.Count <= 0)
                     {
                         Thread.Sleep(250);
                         continue;
                     }
 
-                    stream.Write(sendBuffer, 0, sendBuffer.Length);
-                    sendBuffer = null;
+                    var buf = sendBuffer.ToArray();
+                    sendBuffer.Clear();
+
+                    stream.Write(buf, 0, buf.Length);
                 }
             });
         }

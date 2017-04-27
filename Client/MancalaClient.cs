@@ -15,6 +15,8 @@ namespace Client
         private const int    SERVER_PORT = 5665;
 
         private Action<string> messageWriter;
+        private Action<int> fillCups;
+        private Action<int> cupClick;
         private TcpClient tcpClient;
 
         private byte id;
@@ -22,22 +24,25 @@ namespace Client
         private Task listenerTask;
         private Task senderTask;
 
-        private volatile byte[] sendBuffer;
+        private Queue<byte> sendBuffer;
 
         private volatile bool isConnected = false;
         private volatile bool isListening = false;
         private volatile bool isSending = false;
 
-        private Action<byte> recievedSecondaryAction;
+        private Action<byte> recievedDataSecondaryAction;
 
-        public MancalaClient(Action<string> messageWriter)
+        public MancalaClient(Action<string> messageWriter, Action<int> fillCups, Action<int> cupClick)
         {
             this.messageWriter = messageWriter;
+            this.fillCups = fillCups;
+            this.cupClick = cupClick;
             tcpClient = new TcpClient();
+            sendBuffer = new Queue<byte>();
         }
 
         // Attempts to connect the client to the server.
-        public async void Connect()
+        public void Connect()
         {
             // Continuously check for server connection until it is found.
             while (!isConnected)
@@ -45,38 +50,54 @@ namespace Client
                 try
                 {
                     // Connect on separate thread.
-                    await tcpClient.ConnectAsync(SERVER_ADDR, SERVER_PORT);
+                    tcpClient.Connect(SERVER_ADDR, SERVER_PORT);
                     isConnected = true;
                 }
                 catch (Exception)
                 {
                     // Wait for a separate thread to sleep and return. 
                     // This prevents the UI thread from being blocked, but inserts time between conenction attempts.
-                    await Task.Run(() => Thread.Sleep(1000));
+                    Thread.Sleep(500);
                 }
             }
 
             // Start listening to the server once there is a connection.
-            StartListenerTask();
-            StartSenderTask();
+            //StartListenerTask();
+            //StartSenderTask();
         }
 
         // Closes the connection to the server.
         public void Disconnect()
         {
-            sendBuffer = new byte[] { MancalaProtocol.DISCONNECTED };
+            SendData(MancalaProtocol.DISCONNECTED);
 
             // Stop the listening thread.
             isListening = false;
-            listenerTask.Wait();
+            if (listenerTask != null)
+                listenerTask.Wait();
 
             // Stop the sending thread.
             isSending = false;
-            senderTask.Wait();
+            if (senderTask != null)
+                senderTask.Wait();
 
             tcpClient.Close();
 
             isConnected = false;
+        }
+
+        public void SendData(params byte[] data)
+        {
+            foreach (var dat in data)
+            {
+                sendBuffer.Enqueue(dat);
+            }
+        }
+
+        public void CupClicked(byte cupLoc)
+        {
+            Console.WriteLine("Cup clicked: " + cupLoc);
+            SendData(MancalaProtocol.EXPECT_MOVE, cupLoc);
         }
 
         // Handle data recieved from the server.
@@ -87,10 +108,10 @@ namespace Client
             {
                 // Complete a secondary action if one is available.
                 // Executes the action and sets it to null because the action is completed.
-                if (recievedSecondaryAction != null)
+                if (recievedDataSecondaryAction != null)
                 {
-                    recievedSecondaryAction(data[i]);
-                    recievedSecondaryAction = null;
+                    recievedDataSecondaryAction(data[i]);
+                    recievedDataSecondaryAction = null;
                     continue;
                 }
 
@@ -111,7 +132,7 @@ namespace Client
                     case MancalaProtocol.EXPECT_ID:
                     {
                         // Create a secondary action to be completed on the next byte available.
-                        recievedSecondaryAction = x =>
+                        recievedDataSecondaryAction = x =>
                         {
                             id = x;
                             messageWriter("ID: " + id);
@@ -126,6 +147,29 @@ namespace Client
                     case MancalaProtocol.OPPONENT_FOUND:
                     {
                         messageWriter("Opponent found. Game beginning soon!");
+                        break;
+                    }
+                    case MancalaProtocol.START_GAME:
+                    {
+                        fillCups(4);
+                        break;
+                    }
+                    case MancalaProtocol.PLAYER_TURN:
+                    {
+                        messageWriter("Your turn!");
+                        break;
+                    }
+                    case MancalaProtocol.OPPONENT_TURN:
+                    {
+                        messageWriter("Opponent turn!");
+                        break;
+                    }
+                    case MancalaProtocol.EXPECT_MOVE:
+                    {
+                        recievedDataSecondaryAction = x =>
+                        {
+                            cupClick(x);
+                        };
                         break;
                     }
                     default:
@@ -174,14 +218,16 @@ namespace Client
 
                 while (isConnected && isSending)
                 {
-                    if (sendBuffer == null)
+                    if (sendBuffer.Count <= 0)
                     {
                         Thread.Sleep(250);
                         continue;
                     }
 
-                    stream.Write(sendBuffer, 0, sendBuffer.Length);
-                    sendBuffer = null;
+                    var buf = sendBuffer.ToArray();
+                    sendBuffer.Clear();
+
+                    stream.Write(buf, 0, buf.Length);
                 }
             });
         }

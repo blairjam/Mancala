@@ -22,6 +22,9 @@ namespace Client
         private Label label;
         private int gems;
 
+        private delegate void GemLabelUpdater(string count);
+        private delegate void ImageSourceUpdater(string src);
+
         public int Gems
         {
             get
@@ -32,7 +35,7 @@ namespace Client
             set
             {
                 gems = Math.Abs(value);
-                label.Content = gems.ToString();
+                UpdateGemLabel(gems.ToString());
 
                 switch (gems)
                 {
@@ -78,7 +81,14 @@ namespace Client
 
         private void ChangeSource(string source)
         {
-            image.Source = new BitmapImage(new Uri(APP_ROOT + source, UriKind.Absolute));
+            ImageSourceUpdater sourceUpdater = (x) => { image.Source = new BitmapImage(new Uri(APP_ROOT + x, UriKind.Absolute)); };
+            image.Dispatcher.BeginInvoke(sourceUpdater, source);
+        }
+
+        private void UpdateGemLabel(string count)
+        {
+            GemLabelUpdater labelUpdater = (x) => { label.Content = x; };
+            label.Dispatcher.BeginInvoke(labelUpdater, count);
         }
     }
 }

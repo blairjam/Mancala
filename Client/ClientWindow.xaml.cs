@@ -45,7 +45,7 @@ namespace Client
 
             InitializeCups();
 
-            client = new MancalaClient(x => UpdateMessage(x));
+            client = new MancalaClient(x => UpdateMessage(x), x => FillAllCups(x), x => CupClick(x));
         }
 
         // Add cups to the cups list.
@@ -72,6 +72,7 @@ namespace Client
             // Start connecting to the server.
             ClientMessage_Label.Content = "Connecting to server...";
             client.Connect();
+            Console.WriteLine("Connected.");
         }
 
 
@@ -101,7 +102,7 @@ namespace Client
         }
 
         // Handles clicking on a given cup.
-        private void PlayerCupClick(int cupLoc)
+        private void CupClick(int cupLoc)
         {
             var clickedCup = cups[cupLoc];
             var availableGems = clickedCup.Gems;
@@ -122,49 +123,61 @@ namespace Client
         #region ButtonClickListeners
         private void PlCup0_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(0);
+            return;
             if (cups[PLAYER_CUP_0].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_0);
+                client.CupClicked(PLAYER_CUP_0);
             }
         }
 
         private void PlCup1_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(1);
+            return;
             if (cups[PLAYER_CUP_1].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_1);
+                client.CupClicked(PLAYER_CUP_1);
             }
         }
 
         private void PlCup2_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(2);
+            return;
             if (cups[PLAYER_CUP_2].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_2);
+                client.CupClicked(PLAYER_CUP_2);
             }
         }
 
         private void PlCup3_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(3);
+            return;
             if (cups[PLAYER_CUP_3].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_3);
+                client.CupClicked(PLAYER_CUP_3);
             }
         }
 
         private void PlCup4_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(4);
+            return;
             if (cups[PLAYER_CUP_4].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_4);
+                client.CupClicked(PLAYER_CUP_4);
             }
         }
 
         private void PlCup5_Button_Click(object sender, RoutedEventArgs e)
         {
+            CupClick(5);
+            return;
             if (cups[PLAYER_CUP_5].Gems <= 0)
             {
-                PlayerCupClick(PLAYER_CUP_5);
+                client.CupClicked(PLAYER_CUP_5);
             }
         }
         #endregion
