@@ -33,6 +33,11 @@ namespace Server
             server.AcceptConnections();
         }
 
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            server.CloseConnections();
+        }
+
         private void AppendLineToLog(string message)
         {
             LogUpdater updater = x => { ServerLog_TextBox.AppendText(x + Environment.NewLine); };

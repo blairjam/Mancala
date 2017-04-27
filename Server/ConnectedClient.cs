@@ -24,7 +24,6 @@ namespace Server
         private volatile bool isConnected = false;
         private volatile bool isListening = false;
         private volatile bool isSending = false;
-        private volatile bool isDataProcessed = true;
 
         public ConnectedClient(TcpClient connection, byte clientId, Action<string> logWriter, Action<byte> clientDisposer)
         {
@@ -41,7 +40,7 @@ namespace Server
 
             Task.Run(() =>
             {
-                while (isConnected || !isDataProcessed)
+                while (isConnected)
                 {
                     Thread.Sleep(500);
                 }
@@ -54,6 +53,8 @@ namespace Server
 
         public void Close()
         {
+            sendBuffer = new byte[] { MancalaProtocol.DISCONNECTED };
+
             isListening = false;
             listenerTask.Wait();
 
@@ -67,8 +68,6 @@ namespace Server
 
         public void DataRecieved(byte[] data)
         {
-            isDataProcessed = false;
-
             for (int i = 0; i < data.Length; i++)
             {
                 switch (data[i])
@@ -85,8 +84,6 @@ namespace Server
                     }
                 }
             }
-
-            isDataProcessed = true;
         }
 
         public void SendData(params byte[] data)
@@ -134,6 +131,7 @@ namespace Server
                     }
 
                     stream.Write(sendBuffer, 0, sendBuffer.Length);
+                    Console.WriteLine("Sending: " + sendBuffer[0]);
                     sendBuffer = null;
                 }
             });

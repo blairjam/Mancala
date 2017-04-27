@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Server
@@ -38,6 +39,12 @@ namespace Server
             {
                 while (isAcceptingConnections)
                 {
+                    if (!tcpListener.Pending())
+                    {
+                        Thread.Sleep(250);
+                        continue;
+                    }
+
                     var connection = tcpListener.AcceptTcpClient();
                     connectedClients.Add(new ConnectedClient(connection, clientId, logWriter, DisposeOfClient));
                     logWriter("[Client " + clientId + "]: Connected.");
@@ -46,10 +53,10 @@ namespace Server
             });
         }
 
-        public async void CloseConnections()
+        public void CloseConnections()
         {
             isAcceptingConnections = false;
-            await connectionListenerTask;
+            connectionListenerTask.Wait();
 
             tcpListener.Stop();
 
@@ -62,7 +69,7 @@ namespace Server
         private void DisposeOfClient(byte id)
         {
             connectedClients.RemoveAll((x) => x.ClientId == id);
-            Console.WriteLine("Disposed of client: " + id);
+
         }
     }
 }
