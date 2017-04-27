@@ -44,26 +44,24 @@ namespace Client
         // Attempts to connect the client to the server.
         public void Connect()
         {
-            // Continuously check for server connection until it is found.
-            while (!isConnected)
+            Task.Run(() =>
             {
-                try
+                while (!isConnected)
                 {
-                    // Connect on separate thread.
-                    tcpClient.Connect(SERVER_ADDR, SERVER_PORT);
-                    isConnected = true;
+                    try
+                    {
+                        tcpClient.Connect(SERVER_ADDR, SERVER_PORT);
+                        isConnected = true;
+                    }
+                    catch (Exception)
+                    {
+                        Thread.Sleep(500);
+                    }
                 }
-                catch (Exception)
-                {
-                    // Wait for a separate thread to sleep and return. 
-                    // This prevents the UI thread from being blocked, but inserts time between conenction attempts.
-                    Thread.Sleep(500);
-                }
-            }
 
-            // Start listening to the server once there is a connection.
-            //StartListenerTask();
-            //StartSenderTask();
+                StartListenerTask();
+                StartSenderTask();
+            });
         }
 
         // Closes the connection to the server.

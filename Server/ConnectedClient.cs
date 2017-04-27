@@ -17,6 +17,7 @@ namespace Server
         private TcpClient connection;
         private Action<string> logWriter;
         private Action<MancalaMove> gameMoveUpdater;
+        private Action<byte> clientDisposer;
 
         private Task listenerTask;
         private Task senderTask;
@@ -35,6 +36,7 @@ namespace Server
             ClientId = clientId;
             this.logWriter = logWriter;
             this.gameMoveUpdater = gameMoveUpdater;
+            this.clientDisposer = clientDisposer;
 
             sendBuffer = new Queue<byte>();
 
@@ -44,18 +46,6 @@ namespace Server
             StartListenerTask();
 
             SendData(MancalaProtocol.CONNECTED, MancalaProtocol.EXPECT_ID, clientId);
-
-            Task.Run(() =>
-            {
-                while (isConnected)
-                {
-                    Thread.Sleep(500);
-                }
-
-                Close();
-
-                clientDisposer(clientId);
-            });
         }
 
         public void Close()
@@ -89,13 +79,18 @@ namespace Server
                     case MancalaProtocol.DISCONNECTED:
                     {
                         logWriter("[Client " + ClientId + "]: Disconnecting.");
-                        isConnected = false;
+                        Task.Run(() =>
+                        {
+                            Close();
+                            clientDisposer(ClientId);
+                        });
                         return;
                     }
                     case MancalaProtocol.EXPECT_MOVE:
                     {
                         recievedDataSecondaryAction = x =>
                         {
+                            logWriter("[Client " + ClientId + "]: Choosing cup #" + x + ". Sending to Client " + OpponentId + ".");
                             gameMoveUpdater(new MancalaMove(ClientId, OpponentId, x));
                         };
                         break;

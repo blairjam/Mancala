@@ -123,9 +123,9 @@ namespace Client
         #region ButtonClickListeners
         private void PlCup0_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(0);
-            return;
-            if (cups[PLAYER_CUP_0].Gems <= 0)
+            //CupClick(0);
+            //return;
+            if (cups[PLAYER_CUP_0].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_0);
             }
@@ -133,9 +133,9 @@ namespace Client
 
         private void PlCup1_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(1);
-            return;
-            if (cups[PLAYER_CUP_1].Gems <= 0)
+            //CupClick(1);
+            //return;
+            if (cups[PLAYER_CUP_1].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_1);
             }
@@ -143,9 +143,9 @@ namespace Client
 
         private void PlCup2_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(2);
-            return;
-            if (cups[PLAYER_CUP_2].Gems <= 0)
+            //CupClick(2);
+            //return;
+            if (cups[PLAYER_CUP_2].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_2);
             }
@@ -153,9 +153,9 @@ namespace Client
 
         private void PlCup3_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(3);
-            return;
-            if (cups[PLAYER_CUP_3].Gems <= 0)
+            //CupClick(3);
+            //return;
+            if (cups[PLAYER_CUP_3].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_3);
             }
@@ -163,9 +163,9 @@ namespace Client
 
         private void PlCup4_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(4);
-            return;
-            if (cups[PLAYER_CUP_4].Gems <= 0)
+            //CupClick(4);
+            //return;
+            if (cups[PLAYER_CUP_4].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_4);
             }
@@ -173,9 +173,9 @@ namespace Client
 
         private void PlCup5_Button_Click(object sender, RoutedEventArgs e)
         {
-            CupClick(5);
-            return;
-            if (cups[PLAYER_CUP_5].Gems <= 0)
+            //CupClick(5);
+            //return;
+            if (cups[PLAYER_CUP_5].Gems > 0)
             {
                 client.CupClicked(PLAYER_CUP_5);
             }

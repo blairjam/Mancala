@@ -41,6 +41,8 @@ namespace Server
         {
             tcpListener.Start();
 
+            StartGameCommunicationTask();
+
             isAcceptingConnections = true;
             connectionListenerTask = Task.Run(() =>
             {
@@ -66,6 +68,9 @@ namespace Server
         {
             isAcceptingConnections = false;
             connectionListenerTask.Wait();
+
+            isGameRunning = false;
+            gameCommunicationTask.Wait();
 
             tcpListener.Stop();
 
